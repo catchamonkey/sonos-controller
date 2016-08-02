@@ -15,7 +15,6 @@ var commands = map[string]func(){
 	"play":  play,
 	"pause": pause,
 	"skip":  skip,
-	"next":  skip, // alias of skip
 }
 
 func init() {
