@@ -9,49 +9,43 @@ import (
 )
 
 var sonosIP string
-var pauseCommand bool
-var playCommand bool
+var command string
+
+var commands = map[string]func(){
+	"play":  play,
+	"pause": pause,
+	"skip":  skip,
+	"next":  skip, // alias of skip
+}
 
 func init() {
 	flag.StringVar(&sonosIP, "sonos-ip", "0.0.0.0", "The IP Address of the target Sonos device")
-	flag.BoolVar(&pauseCommand, "pause", false, "Invoke the pause Command")
-	flag.BoolVar(&playCommand, "play", false, "Invoke the Play Command")
+	flag.StringVar(&command, "command", "play", "The command to execute, play, pause, skip (next)")
 }
 
 func main() {
 	flag.Parse()
-	if pauseCommand {
-		pause()
-	}
-	if playCommand {
-		play()
+	if commands[command] != nil {
+		commands[command]()
 	}
 }
 
 func pause() {
-	log.Println("Pausing")
-	body := "<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\"><s:Body><u:Pause xmlns:u=\"urn:schemas-upnp-org:service:AVTransport:1\"><InstanceID>0</InstanceID><Speed>1</Speed></u:Pause></s:Body></s:Envelope>"
-	client := &http.Client{}
-	// build a new request, but not doing the POST yet
-	req, err := http.NewRequest("POST", fmt.Sprintf("http://%v:1400/MediaRenderer/AVTransport/Control", sonosIP), bytes.NewBuffer([]byte(body)))
-
-	if err != nil {
-		log.Println(err)
-	}
-
-	req.Header.Add("Content-Type", "text/xml; charset=utf-8")
-	req.Header.Add("SOAPACTION", "urn:schemas-upnp-org:service:AVTransport:1#Pause")
-	_, err = client.Do(req)
-	if err != nil {
-		log.Println(err)
-	}
+	exec("Pause")
 }
 
 func play() {
-	log.Println("Playing")
-	body := "<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\"><s:Body><u:Play xmlns:u=\"urn:schemas-upnp-org:service:AVTransport:1\"><InstanceID>0</InstanceID><Speed>1</Speed></u:Play></s:Body></s:Envelope>"
+	exec("Play")
+}
+
+func skip() {
+	exec("Next")
+}
+
+func exec(cmd string) {
+	log.Println("Executing", cmd)
+	body := fmt.Sprintf("<s:Envelope xmlns:s=\"http://schemas.xmlsoap.org/soap/envelope/\" s:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\"><s:Body><u:%v xmlns:u=\"urn:schemas-upnp-org:service:AVTransport:1\"><InstanceID>0</InstanceID><Speed>1</Speed></u:%v></s:Body></s:Envelope>", cmd, cmd)
 	client := &http.Client{}
-	// build a new request, but not doing the POST yet
 	req, err := http.NewRequest("POST", fmt.Sprintf("http://%v:1400/MediaRenderer/AVTransport/Control", sonosIP), bytes.NewBuffer([]byte(body)))
 
 	if err != nil {
@@ -59,7 +53,7 @@ func play() {
 	}
 
 	req.Header.Add("Content-Type", "text/xml; charset=utf-8")
-	req.Header.Add("SOAPACTION", "urn:schemas-upnp-org:service:AVTransport:1#Play")
+	req.Header.Add("SOAPACTION", fmt.Sprintf("urn:schemas-upnp-org:service:AVTransport:1#%v", cmd))
 	_, err = client.Do(req)
 	if err != nil {
 		log.Println(err)
