@@ -12,20 +12,24 @@ var sonosIP string
 var command string
 
 var commands = map[string]func(){
-	"play":  play,
-	"pause": pause,
-	"skip":  skip,
+	"play":     play,
+	"pause":    pause,
+	"next":     next,
+	"stop":     stop,
+	"previous": previous,
 }
 
 func init() {
 	flag.StringVar(&sonosIP, "sonos-ip", "0.0.0.0", "The IP Address of the target Sonos device")
-	flag.StringVar(&command, "command", "play", "The command to execute, play, pause, skip (next)")
+	flag.StringVar(&command, "command", "play", "The command to execute, must be one of play, pause, next, stop, previous")
 }
 
 func main() {
 	flag.Parse()
 	if commands[command] != nil {
 		commands[command]()
+	} else {
+		fmt.Println("Invalid command provided, see -help")
 	}
 }
 
@@ -37,8 +41,16 @@ func play() {
 	exec("Play")
 }
 
-func skip() {
+func next() {
 	exec("Next")
+}
+
+func stop() {
+	exec("Stop")
+}
+
+func previous() {
+	exec("Previous")
 }
 
 func exec(cmd string) {
